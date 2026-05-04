@@ -280,6 +280,66 @@ streamlit run app.py
 
 ---
 
+---
+
+## ⚠️ Environment & Setup Notes (Important)
+
+This project uses `sentence-transformers`, which depends on **PyTorch**.
+On some systems, you may encounter errors like:
+
+```
+ModuleNotFoundError: No module named 'torchvision'
+```
+
+### ✅ Recommended Fix (CPU Systems)
+
+If you're running on a CPU-only machine (e.g., 8GB RAM laptop), install dependencies using:
+
+```bash
+pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu
+```
+
+This ensures:
+
+* Correct PyTorch (CPU) version
+* Compatibility with `torchvision`
+* Stable execution of embedding and reranking models
+
+---
+
+### 💡 Why This Is Needed
+
+Even though this project is text-based:
+
+* `sentence-transformers` internally depends on **PyTorch**
+* Some configurations require `torchvision`, even if not directly used
+
+---
+
+### 🧠 System Recommendation
+
+For smooth performance:
+
+* RAM: **8GB+**
+* CPU: Modern multi-core processor (i5 or equivalent)
+* GPU: Not required
+
+---
+
+### 🛠️ If Installation Fails
+
+Try:
+
+```bash
+pip cache purge
+pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu
+```
+
+---
+
+> These steps ensure a consistent setup across different environments and avoid common dependency issues.
+
+
 ## 🧑‍💻 Author
 
 **Tushar Pathak**
