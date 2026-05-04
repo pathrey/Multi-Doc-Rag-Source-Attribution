@@ -1,92 +1,287 @@
-# Multi-Document RAG with Source Attribution
+# ⭐ Multi-Document RAG with Source Attribution
 
-### 🔍 The Problem
-Finding exact answers across multiple PDFs—research papers, reports, or notes—is often slow, manual, and unreliable. Standard search tools present several hurdles:
+## 🔍 The Problem We Ran Into
 
-*   **Keyword search (BM25)** misses the underlying meaning.
-*   **Semantic search (embeddings)** can sometimes retrieve irrelevant context.
-*   **Lack of Evidence:** Most AI answers don’t specify where the information originated.
-*   **Trust Issues:** There is often no way to judge the reliability of a generated answer.
+While working with multiple PDFs—research papers, reports, documentation—we noticed something frustrating:
 
-**The real challenge:** Getting accurate, explainable, and trustworthy answers from a vast pool of documents.
+> Even when answers exist in the documents, finding them is slow, inconsistent, and often unreliable.
 
----
+We tried traditional approaches:
 
-### 💡 Our Approach
-To solve this, we built a **Multi-Document RAG (Retrieval-Augmented Generation)** system that focuses on transparency and precision:
+* **Keyword search (BM25)**
+  Works well when exact words match, but completely fails if the phrasing is different.
 
-1.  **Hybrid Search:** Combines BM25 and Semantic Embeddings for superior retrieval.
-2.  **Clear Attribution:** Maps every answer back to its specific document and page number.
-3.  **Confidence Scoring:** Provides a metric to help users judge the reliability of the output.
+* **Semantic search (embeddings)**
+  Understands meaning, but sometimes retrieves *loosely related* or irrelevant chunks.
 
-#### Why Hybrid Search?
-*   **BM25:** Excellent for exact term matches.
-*   **Embeddings:** Understands context and intent even when wording differs.
-By combining both, we create a more resilient retrieval system that captures what a single method might miss.
+* **LLM-based answers**
+  Sound convincing, but often:
 
----
+  * Don’t show where the answer came from
+  * Can’t be verified
+  * May hallucinate
 
-### ⚙️ How It Works
-The system follows a structured pipeline:
+So the real problem wasn’t just retrieval or generation—it was:
 
-1.  **Ingestion:** Extracts text and metadata (filename, page number) via `pdfplumber`.
-2.  **Chunking:** Breaks text into smaller segments for more granular retrieval.
-3.  **Indexing:** Stores data in a **BM25 index** and a **FAISS vector database**.
-4.  **Retrieval:** Merges similarity scores from both indexes to find the top context chunks.
-5.  **Generation:** Passes context to the **LLM** to generate a structured answer.
-6.  **Trust Layer:** Appends citations and calculates a confidence score based on retrieval agreement.
+> **How do we build a system that is both accurate *and* trustworthy?**
 
 ---
 
-### 🧰 Libraries & Tools
-*   **LangChain:** Orchestrates the RAG pipeline.
-*   **FAISS:** High-speed vector similarity search.
-*   **sentence-transformers:** Generates semantic embeddings.
-*   **rank_bm25:** Powers the keyword-based retrieval.
-*   **OpenAI API:** High-quality text generation.
-*   **Streamlit:** Provides a clean, functional UI.
+## 💡 Our Approach
+
+We built an **Advanced Multi-Document RAG system** focused on one idea:
+
+> Not just getting answers — but making them **reliable, explainable, and verifiable**.
+
+To achieve that, we designed a pipeline with three key layers:
+
+1. **Hybrid Retrieval** → find good candidate chunks
+2. **Reranking** → ensure the *best* chunks are actually on top
+3. **Answer + Trust Layer** → generate + explain + quantify confidence
 
 ---
 
-### 🚀 Key Features
-*   ✅ **Cross-Document Analysis:** Works seamlessly across multiple files.
-*   ✅ **Hybrid Retrieval:** Better accuracy than vector-only search.
-*   ✅ **Deep Citations:** Precise source tracking (File + Page).
-*   ✅ **Explainability:** Focuses on trust rather than just "black box" answers.
+## 🧠 Why Hybrid Retrieval?
+
+We didn’t rely on a single retrieval method because each has clear limitations:
+
+### 🔍 BM25 (Keyword Search)
+
+* Very strong when exact terms appear
+* Fast and reliable
+* But:
+
+  > Fails when the query and document use different wording
 
 ---
 
-### ▶️ How to Run
+### 🧬 Embeddings (Semantic Search)
+
+* Understands meaning and context
+* Can retrieve relevant content even with different phrasing
+* But:
+
+  > Sometimes retrieves “similar-sounding” but irrelevant chunks
+
+---
+
+### 👉 So we combine them:
+
+```text
+Final Score = 0.5 × BM25 + 0.5 × Embedding Similarity
+```
+
+This gives us:
+
+* Better recall (we don’t miss relevant chunks)
+* More balanced retrieval
+
+But we quickly noticed a problem…
+
+---
+
+## ⚠️ The Problem with Hybrid Retrieval
+
+Even after combining BM25 + embeddings:
+
+> The **top results were not always the best results**
+
+Why?
+
+Because:
+
+* Both BM25 and embeddings score **independently**
+* They don’t deeply understand **query–document interaction**
+* So ranking can still be noisy
+
+---
+
+## 🔁 Why We Added Reranking (Key Upgrade)
+
+This is where **reranking** comes in—and it’s one of the most important improvements in the system.
+
+### 🧠 What is Reranking?
+
+After retrieving top candidates, we pass them through a **cross-encoder model** that:
+
+* Looks at **(query, document)** together
+* Scores their *true relevance*
+* Reorders the results
+
+---
+
+### 🤔 Why is this better?
+
+Earlier methods:
+
+* Compare query and document **independently**
+* Approximate similarity
+
+Reranker:
+
+* Looks at them **jointly**
+* Understands:
+
+  * intent
+  * context
+  * subtle relevance
+
+---
+
+### 📈 How It Improves the System
+
+Without reranking:
+
+* Top results can be noisy
+* Important chunks may be ranked lower
+
+With reranking:
+
+* Better ordering of results
+* Higher precision in final context
+* More accurate answers
+
+> In simple terms:
+> **Retrieval finds candidates → Reranking finds the best ones**
+
+---
+
+## ⚙️ Full System Flow
+
+```text
+PDFs → Text Extraction → Chunking
+        ↓
+BM25 + Embeddings (Hybrid Retrieval)
+        ↓
+Top-K Candidate Chunks
+        ↓
+Cross-Encoder Reranking
+        ↓
+Best Context Selection
+        ↓
+LLM (Groq)
+        ↓
+Answer + Sources + Confidence
+```
+
+---
+
+## ✂️ Why Chunking Matters
+
+We split documents into chunks of:
+
+* **300 words**
+* **50-word overlap**
+
+### Why not full documents?
+
+* Too large → irrelevant information
+* Poor retrieval quality
+
+### Why not very small chunks?
+
+* Lose context
+* Answers become incomplete
+
+### Why overlap?
+
+* Prevents cutting important context at boundaries
+
+---
+
+## 🤖 Answer Generation
+
+We use **Groq LLM API** for:
+
+* Fast inference
+* Low latency
+* Good response quality
+
+The model receives:
+
+* Top-ranked chunks
+* Structured prompt
+
+And generates:
+
+* Answer
+* Source references
+
+---
+
+## 📊 Confidence Score (Trust Layer)
+
+We don’t just give answers—we try to estimate **how reliable they are**.
+
+### How it works:
+
+* Take similarity scores of retrieved chunks
+* Normalize them (0–1 range)
+* Compute average
+
+### Why this helps:
+
+* High agreement → higher confidence
+* Low agreement → uncertain answer
+
+> Note: This is a heuristic, not a true probability
+
+---
+
+## 📊 Evaluation (Why This Matters)
+
+Most RAG projects stop at “it works.”
+
+We added **evaluation** using:
+
+### Precision@K
+
+Measures:
+
+> How many retrieved documents are actually relevant?
+
+This allows:
+
+* Comparing retrieval strategies
+* Validating improvements (e.g., reranking impact)
+
+---
+
+## 🧰 Tech Stack
+
+* Python
+* sentence-transformers (embeddings + reranking)
+* FAISS (vector search)
+* rank_bm25 (keyword search)
+* Groq API (LLM)
+* Streamlit (UI)
+* pdfplumber (PDF parsing)
+
+---
+
+## 🚀 What Makes This Project Strong
+
+* ✅ Not just retrieval — **retrieval + refinement**
+* ✅ Not just answers — **answers + sources + confidence**
+* ✅ Not just demo — **evaluation included**
+* ✅ Designed with **trade-offs and reasoning in mind**
+
+---
+
+## ▶️ Run Locally
 
 ```bash
-# Clone the repository
 git clone https://github.com/<your-username>/multi-doc-rag-source-attribution.git
 cd multi-doc-rag-source-attribution
 
-# Install dependencies
 pip install -r requirements.txt
-
-# Run the application
 streamlit run app.py
 ```
 
-**Example Query:**
-> *“What are the main conclusions of the report?”*
->
-> **Output:**
-> * [Generated Answer]
-> * **Sources:** `report.pdf` (Page 4)
-> * **Confidence Score:** 0.89
-
 ---
 
-### 🔮 Future Improvements
-*   **OCR Support:** For scanned or image-heavy PDFs.
-*   **Reranking Models:** To further refine retrieved results.
-*   **Local LLM Deployment:** Support for privacy-focused local models.
-*   **Evaluation Metrics:** Implementing precision and recall tracking.
+## 🧑‍💻 Author
 
----
+**Tushar Pathak**
 
-**🧑‍💻 Author:** Tushar Pathak
-*Focusing on making AI trustworthy, explainable, and usable in real-world scenarios.*
+> Focused on building systems that don’t just generate answers—but help users **trust them**.
