@@ -1,0 +1,14 @@
+# Environment
+.env
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Data files
+data/
+*.pdf
+
+# OS files
+.DS_Store

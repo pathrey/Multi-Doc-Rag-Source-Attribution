@@ -1,0 +1,10 @@
+streamlit
+sentence-transformers
+faiss-cpu
+rank-bm25
+pdfplumber
+groq
+numpy
+python-dotenv
+torch
+torchvision
